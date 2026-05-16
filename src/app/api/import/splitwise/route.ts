@@ -1,0 +1,2 @@
+import { ok, fail } from "@/lib/http"; import { parseSplitwiseFile, previewImport } from "@/services/splitwiseImportService";
+export async function POST(req:Request){ const form=await req.formData(); const file=form.get("file"); if(!(file instanceof File))return fail("file required"); const buffer=Buffer.from(await file.arrayBuffer()); return ok(previewImport(await parseSplitwiseFile(buffer,file.name))); }
