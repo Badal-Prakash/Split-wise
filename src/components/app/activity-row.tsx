@@ -25,6 +25,7 @@ const titles: Record<string, string> = {
   "group.deleted": "Group deleted",
   "group.invite_sent": "Group invite sent",
   "comment.added": "Comment added",
+  "import.completed": "Import completed",
 };
 
 function actorName(activity: Activity) {
@@ -68,6 +69,8 @@ function activityDetail(activity: Activity) {
       return `${actor} left ${group}.`;
     case "comment.added":
       return `${actor} commented on ${payload.title ?? "an expense"}.`;
+    case "import.completed":
+      return `${actor} imported ${payload.createdExpenses ?? 0} expenses and ${payload.createdSettlements ?? 0} payments into ${group}.`;
     default:
       return `${actor} made an update${group ? ` in ${group}` : ""}.`;
   }
@@ -75,7 +78,7 @@ function activityDetail(activity: Activity) {
 
 export function ActivityRow({ activity, compact = false }: { activity: Activity; compact?: boolean }) {
   return (
-    <div className="flex flex-col gap-2 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-900 md:flex-row md:items-center md:justify-between">
+    <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-900 md:flex-row md:items-center md:justify-between">
       <div className="min-w-0">
         <p className="font-medium">{activityTitle(activity.type)}</p>
         {!compact && <p className="mt-1 text-slate-600 dark:text-slate-300">{activityDetail(activity)}</p>}

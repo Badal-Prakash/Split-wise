@@ -40,6 +40,9 @@ export function ExpenseModal({ open, onClose, onSaved, me, groups = [], initialG
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [recurring, setRecurring] = useState(false);
   const [receiptPreview, setReceiptPreview] = useState("");
+  const [showDate, setShowDate] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
 
   const selectedGroup = groups.find((group) => group._id === groupId);
   const users = useMemo(() => {
@@ -161,15 +164,24 @@ export function ExpenseModal({ open, onClose, onSaved, me, groups = [], initialG
           <Field label="Group"><select value={groupId} onChange={(e) => setGroupId(e.target.value)} className={inputClass}><option value="">No group</option>{groups.map((group) => <option key={group._id} value={group._id}>{group.name}</option>)}</select></Field>
           <Field label="Paid by"><select value={paidBy} onChange={(e) => setPaidBy(e.target.value)} className={inputClass}>{users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}</select></Field>
         </div>
-        <Field label={<span className="flex items-center gap-2"><CalendarDays size={15} />Date</span>}><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} /></Field>
-        <div>
-          <p className="mb-2 text-sm font-medium text-slate-600 dark:text-slate-300">Participants</p>
-          <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
-            {users.map((user) => <label key={user.id} className="flex items-center gap-2 rounded-xl border border-slate-200 p-2 text-sm dark:border-slate-800"><input type="checkbox" checked={participants.includes(user.id)} onChange={(e) => setParticipants((items) => e.target.checked ? [...items, user.id] : items.filter((id) => id !== user.id))} />{user.name}</label>)}
-          </div>
+        <div className="flex gap-2">
+          <button aria-label="Show date" title="Date" type="button" onClick={() => setShowDate((value) => !value)} className={`${ghostButtonClass} size-10 p-0 ${showDate ? "border-emerald-500 text-emerald-500" : ""}`}><CalendarDays size={18} /></button>
+          <button aria-label="Show receipt" title="Receipt" type="button" onClick={() => setShowReceipt((value) => !value)} className={`${ghostButtonClass} size-10 p-0 ${showReceipt ? "border-emerald-500 text-emerald-500" : ""}`}><ReceiptText size={18} /></button>
+          <button aria-label="Show notes" title="Notes" type="button" onClick={() => setShowNotes((value) => !value)} className={`${ghostButtonClass} size-10 p-0 ${showNotes ? "border-emerald-500 text-emerald-500" : ""}`}><FileText size={18} /></button>
         </div>
-        <div className="grid gap-3 md:grid-cols-[1fr_2fr]">
+        {showDate && <Field label="Date"><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} /></Field>}
+        {showReceipt && <Field label="Receipt"><input type="file" accept="image/*,.pdf" onChange={(e) => readReceipt(e.target.files?.[0])} className={inputClass} /></Field>}
+        {showNotes && <Field label="Notes"><textarea value={notes} onChange={(e) => setNotes(e.target.value)} className={`${inputClass} min-h-20`} /></Field>}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <p className="mb-2 text-sm font-medium text-slate-600 dark:text-slate-300">Participants</p>
+            <div className="grid gap-2">
+              {users.map((user) => <label key={user.id} className="flex items-center gap-2 rounded-xl border border-slate-200 p-2 text-sm dark:border-slate-800"><input type="checkbox" checked={participants.includes(user.id)} onChange={(e) => setParticipants((items) => e.target.checked ? [...items, user.id] : items.filter((id) => id !== user.id))} />{user.name}</label>)}
+            </div>
+          </div>
           <Field label="Split type"><select value={splitType} onChange={(e) => setSplitType(e.target.value as SplitType)} className={inputClass}>{splitTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></Field>
+        </div>
+        <div className="grid gap-3">
           <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800">
             <p className="mb-2 text-sm font-medium">Live split</p>
             <div className="grid gap-2 md:grid-cols-2">
@@ -191,9 +203,7 @@ export function ExpenseModal({ open, onClose, onSaved, me, groups = [], initialG
           <Field label="Category"><input value={category} onChange={(e) => setCategory(e.target.value)} className={inputClass} /></Field>
           <Field label="Tags"><input value={tags} onChange={(e) => setTags(e.target.value)} className={inputClass} placeholder="food, travel" /></Field>
         </div>
-        <Field label={<span className="flex items-center gap-2"><ReceiptText size={15} />Receipt</span>}><input type="file" accept="image/*,.pdf" onChange={(e) => readReceipt(e.target.files?.[0])} className={inputClass} /></Field>
         {receiptPreview && <div className="flex items-center gap-2 rounded-xl bg-slate-100 p-3 text-sm dark:bg-slate-900"><ReceiptText size={16} /> Receipt attached and ready to save.</div>}
-        <Field label={<span className="flex items-center gap-2"><FileText size={15} />Notes</span>}><textarea value={notes} onChange={(e) => setNotes(e.target.value)} className={`${inputClass} min-h-20`} /></Field>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} /> Repeat monthly from this date</label>
         <div className="flex flex-wrap justify-end gap-2">
           <button type="button" onClick={onClose} className={ghostButtonClass}>Cancel</button>

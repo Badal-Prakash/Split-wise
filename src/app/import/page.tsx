@@ -11,7 +11,7 @@ const normalizeName = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/
 
 export default function ImportPage() {
   const [file, setFile] = useState<File | null>(null);
-  const [groupId, setGroupId] = useState("");
+  const [groupId, setGroupId] = useState(() => typeof window === "undefined" ? "" : new URLSearchParams(window.location.search).get("groupId") ?? "");
   const [preview, setPreview] = useState<any>(null);
   const [userMapping, setUserMapping] = useState<Record<string, string>>({});
   const [error, setError] = useState("");

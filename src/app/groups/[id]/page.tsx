@@ -3,7 +3,7 @@
 import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, Plus, Trash2, UserMinus, UserPlus, WalletCards } from "lucide-react";
+import { Copy, Plus, Trash2, Upload, UserMinus, UserPlus, WalletCards } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { ActivityRow } from "@/components/app/activity-row";
 import { ExpenseModal } from "@/components/app/expense-modal";
@@ -58,12 +58,11 @@ export default function GroupDetails({ params }: { params: Promise<{ id: string 
       <section className="space-y-5 p-4 md:p-8">
         <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div><p className="text-sm text-slate-500">{groupDoc.category ?? "Group"} · {groupDoc.members?.length ?? 0} members</p><h2 className="text-2xl font-bold">{groupDoc.name}</h2></div>
-          <div className="flex flex-wrap gap-2"><button onClick={() => setExpenseOpen(true)} className={buttonClass}><Plus size={16} />Add expense</button><button onClick={() => setSettleOpen(true)} className={ghostButtonClass}><WalletCards size={16} />Settle</button></div>
+          <div className="flex flex-wrap gap-2"><button onClick={() => setExpenseOpen(true)} className={buttonClass}><Plus size={16} />Add expense</button><Link href={`/import?groupId=${id}`} className={ghostButtonClass}><Upload size={16} />Import</Link><button onClick={() => setSettleOpen(true)} className={ghostButtonClass}><WalletCards size={16} />Settle</button></div>
         </header>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3">
           <div className="card"><p className="text-sm text-slate-500">Your group balance</p><b className="text-2xl">{formatMoney(balances?.summary?.currentUser?.netBalance ?? 0, currency)}</b></div>
-          <div className="card"><p className="text-sm text-slate-500">You owe</p><b className="text-2xl">{formatMoney(balances?.summary?.currentUser?.totalOwing ?? 0, currency)}</b></div>
-          <div className="card"><p className="text-sm text-slate-500">You are owed</p><b className="text-2xl text-emerald-500">{formatMoney(balances?.summary?.currentUser?.totalOwed ?? 0, currency)}</b></div>
+          <div className="card"><p className="text-sm text-slate-500">Owe / Owed</p><b className="block truncate text-base md:text-2xl">{formatMoney(balances?.summary?.currentUser?.totalOwing ?? 0, currency)} <span className="text-slate-500">/</span> <span className="text-emerald-500">{formatMoney(balances?.summary?.currentUser?.totalOwed ?? 0, currency)}</span></b></div>
         </div>
         <div className="flex gap-2 overflow-x-auto rounded-xl border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900">{tabs.map((item) => <button key={item} onClick={() => { setTab(item); if (item === "settings") setSettings({ name: groupDoc.name, category: groupDoc.category ?? "", defaultCurrency: currency }); }} className={`rounded-lg px-3 py-2 text-sm capitalize ${tab === item ? "bg-emerald-500 text-white" : "hover:bg-slate-100 dark:hover:bg-slate-800"}`}>{item}</button>)}</div>
 
@@ -77,7 +76,7 @@ export default function GroupDetails({ params }: { params: Promise<{ id: string 
 
         {tab === "analytics" && <div className="grid gap-4 lg:grid-cols-2"><div className="card"><h3 className="mb-3 font-semibold">Monthly spending</h3>{analytics.data?.monthly?.length ? <MonthlyChart data={analytics.data.monthly} /> : <EmptyState title="No analytics yet" />}</div><div className="card"><h3 className="mb-3 font-semibold">Category mix</h3>{(analytics.data?.categories ?? []).map((row: any) => <div key={row.category} className="mb-2 flex justify-between rounded-xl bg-slate-50 p-3 dark:bg-slate-900"><span>{row.category}</span><b>{formatMoney(row.total, currency)}</b></div>)}</div></div>}
 
-        {tab === "activity" && <div className="card">{activities.data?.length ? <div className="space-y-2">{activities.data.map((activity) => <ActivityRow key={activity._id} activity={activity} />)}</div> : <EmptyState title="No activity yet" />}</div>}
+        {tab === "activity" && (activities.data?.length ? <div className="space-y-3">{activities.data.map((activity) => <ActivityRow key={activity._id} activity={activity} />)}</div> : <EmptyState title="No activity yet" />)}
 
         {tab === "settings" && <form onSubmit={saveSettings} className="card max-w-2xl space-y-3"><Field label="Name"><input value={settings.name} onChange={(event) => setSettings((value) => ({ ...value, name: event.target.value }))} className={inputClass} /></Field><Field label="Category"><input value={settings.category} onChange={(event) => setSettings((value) => ({ ...value, category: event.target.value }))} className={inputClass} /></Field><Field label="Default currency"><input value={settings.defaultCurrency} onChange={(event) => setSettings((value) => ({ ...value, defaultCurrency: event.target.value.toUpperCase() }))} maxLength={3} className={inputClass} /></Field><div className="flex gap-2"><button className={buttonClass}>Save settings</button><button type="button" onClick={() => updateGroup.mutate({ action: "leave" })} className={ghostButtonClass}>Leave group</button><button type="button" onClick={() => updateGroup.mutate({ action: "delete" })} className="inline-flex items-center gap-2 rounded-xl bg-rose-500 px-4 py-2 text-sm font-semibold text-white"><Trash2 size={16} />Delete group</button></div></form>}
       </section>

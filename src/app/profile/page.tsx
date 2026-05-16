@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, Save, Trash2 } from "lucide-react";
+import { Bell, CheckCheck, Download, Save, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { buttonClass, Field, ghostButtonClass, inputClass, LoadingRows, StatusBanner } from "@/components/app/ui";
@@ -11,6 +11,7 @@ import { apiRequest, downloadFile } from "@/lib/api-client";
 export default function Profile() {
   const queryClient = useQueryClient();
   const profile = useQuery({ queryKey: ["profile"], queryFn: () => apiRequest<any>("/api/profile") });
+  const notifications = useQuery({ queryKey: ["notifications", "profile"], queryFn: () => apiRequest<any[]>("/api/notifications") });
   const [form, setForm] = useState<any>({ name: "", avatar: "", currency: "INR", timezone: "Asia/Kolkata", theme: "system", notificationSettings: {} });
   const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "" });
   useEffect(() => { if (profile.data) setForm({ ...profile.data, notificationSettings: profile.data.notificationSettings ?? {} }); }, [profile.data]);
@@ -31,6 +32,8 @@ export default function Profile() {
     onSuccess: () => { setPasswords({ currentPassword: "", newPassword: "" }); queryClient.invalidateQueries({ queryKey: ["profile"] }); },
   });
   const remove = useMutation({ mutationFn: () => apiRequest("/api/profile", { method: "DELETE" }) });
+  const markRead = useMutation({ mutationFn: (body: any) => apiRequest("/api/notifications", { method: "PATCH", body: JSON.stringify(body) }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }) });
+  const removeNotification = useMutation({ mutationFn: (id: string) => apiRequest(`/api/notifications?id=${id}`, { method: "DELETE" }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }) });
 
   async function exportData() {
     const data = await apiRequest<any>("/api/profile?export=true");
@@ -63,6 +66,10 @@ export default function Profile() {
           </div>
           <div className="flex gap-2 lg:col-span-2"><button disabled={save.isPending} className={buttonClass}><Save size={16} />{save.isPending ? "Saving..." : "Save settings"}</button><button type="button" onClick={() => remove.mutate()} className="inline-flex items-center gap-2 rounded-xl bg-rose-500 px-4 py-2 text-sm font-semibold text-white"><Trash2 size={16} />Delete account</button></div>
         </form>
+        <div className="card space-y-3">
+          <div className="flex items-center justify-between gap-3"><h3 className="font-semibold">Alerts</h3><button onClick={() => markRead.mutate({ all: true })} className={ghostButtonClass}><CheckCheck size={16} />Mark read</button></div>
+          {notifications.isLoading ? <LoadingRows count={2} /> : notifications.data?.length ? <div className="space-y-2">{notifications.data.slice(0, 8).map((notification) => <div key={notification._id} className={`flex items-start justify-between gap-3 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-900 ${notification.readAt ? "opacity-70" : ""}`}><div className="flex min-w-0 gap-3"><Bell className="mt-0.5 shrink-0 text-emerald-500" size={18} /><div className="min-w-0"><p className="font-medium">{notification.title}</p><p className="truncate text-slate-500">{notification.body}</p></div></div><button onClick={() => removeNotification.mutate(notification._id)} className="rounded-lg p-1 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950"><Trash2 size={15} /></button></div>)}</div> : <StatusBanner>No alerts right now.</StatusBanner>}
+        </div>
       </section>
     </AppShell>
   );

@@ -57,14 +57,13 @@ export default function Dashboard() {
             <ThemeToggle />
             <button aria-label="Create group" title="Create group" onClick={() => setGroupOpen(true)} className={ghostButtonClass + " size-11 p-0"}><Users size={24} /></button>
             <button aria-label="Settle up" title="Settle up" onClick={() => setSettleOpen(true)} className={ghostButtonClass + " size-11 p-0"}><WalletCards size={24} /></button>
-            <button aria-label="Add expense" title="Add expense" onClick={() => setExpenseOpen(true)} className={buttonClass + " size-11 p-0"}><Plus size={26} /></button>
+            <Link aria-label="Search" title="Search" href="/search" className={ghostButtonClass + " size-11 p-0"}><Search size={24} /></Link>
           </div>
         </header>
 
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <div className="card rounded-xl p-3"><p className="text-xs text-slate-500">Balance</p><b className={`block truncate text-sm sm:text-2xl ${(currentUser?.netBalance ?? 0) >= 0 ? "text-emerald-500" : "text-rose-500"}`}>{formatMoney(currentUser?.netBalance ?? 0, currency)}</b></div>
-          <div className="card rounded-xl p-3"><p className="text-xs text-slate-500">Owe</p><b className="block truncate text-sm sm:text-2xl">{formatMoney(currentUser?.totalOwing ?? 0, currency)}</b></div>
-          <div className="card rounded-xl p-3"><p className="text-xs text-slate-500">Owed</p><b className="block truncate text-sm text-emerald-500 sm:text-2xl">{formatMoney(currentUser?.totalOwed ?? 0, currency)}</b></div>
+          <div className="card rounded-xl p-3"><p className="text-xs text-slate-500">Owe / Owed</p><b className="block truncate text-sm sm:text-2xl"><span>{formatMoney(currentUser?.totalOwing ?? 0, currency)}</span> <span className="text-slate-500">/</span> <span className="text-emerald-500">{formatMoney(currentUser?.totalOwed ?? 0, currency)}</span></b></div>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
