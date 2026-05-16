@@ -3,7 +3,7 @@
 import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Plus, Trash2, UserMinus, UserPlus, WalletCards } from "lucide-react";
+import { Copy, Plus, Trash2, UserMinus, UserPlus, WalletCards } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { ExpenseModal } from "@/components/app/expense-modal";
 import { SettleModal } from "@/components/app/settle-modal";
@@ -20,7 +20,8 @@ export default function GroupDetails({ params }: { params: Promise<{ id: string 
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [settleOpen, setSettleOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [settings, setSettings] = useState({ name: "", category: "", defaultCurrency: "USD" });
+  const [inviteLink, setInviteLink] = useState("");
+  const [settings, setSettings] = useState({ name: "", category: "", defaultCurrency: "INR" });
   const refresh = () => queryClient.invalidateQueries();
 
   const me = useQuery({ queryKey: ["me"], queryFn: () => apiRequest<any>("/api/me") });
@@ -31,12 +32,16 @@ export default function GroupDetails({ params }: { params: Promise<{ id: string 
 
   const groupDoc = group.data?.group;
   const balances = group.data?.balances;
-  const currency = groupDoc?.defaultCurrency ?? me.data?.currency ?? "USD";
+  const invites = group.data?.invites ?? [];
+  const currency = groupDoc?.defaultCurrency ?? me.data?.currency ?? "INR";
   const users = useMemo(() => [me.data, ...(groupDoc?.members ?? [])].filter(Boolean), [me.data, groupDoc]);
 
   const updateGroup = useMutation({
     mutationFn: (body: any) => apiRequest(`/api/groups/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
-    onSuccess: refresh,
+    onSuccess: (data: any) => {
+      if (data?.inviteUrl) setInviteLink(data.inviteUrl);
+      refresh();
+    },
   });
 
   function saveSettings(event: React.FormEvent<HTMLFormElement>) {
@@ -67,7 +72,7 @@ export default function GroupDetails({ params }: { params: Promise<{ id: string 
 
         {tab === "balances" && <div className="grid gap-4 lg:grid-cols-2"><div className="card"><h3 className="mb-3 font-semibold">Who owes whom</h3>{balances?.rawBalances?.length ? balances.rawBalances.map((edge: any, index: number) => <BalanceRow key={index} edge={edge} users={users} currency={currency} />) : <EmptyState title="All settled" />}</div><div className="card"><h3 className="mb-3 font-semibold">Simplified balances</h3>{balances?.simplifiedBalances?.length ? balances.simplifiedBalances.map((edge: any, index: number) => <BalanceRow key={index} edge={edge} users={users} currency={currency} />) : <EmptyState title="No simplified debts" />}</div></div>}
 
-        {tab === "members" && <div className="grid gap-4 lg:grid-cols-[2fr_1fr]"><div className="card"><h3 className="mb-3 font-semibold">Members</h3><div className="space-y-2">{groupDoc.members.map((member: any) => <div key={member._id} className="flex items-center justify-between rounded-xl bg-slate-50 p-3 dark:bg-slate-900"><div><p className="font-medium">{member.name}</p><p className="text-sm text-slate-500">{member.email}</p></div><button onClick={() => updateGroup.mutate({ action: "remove-member", userId: member._id })} className="rounded-lg p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950"><UserMinus size={16} /></button></div>)}</div></div><form onSubmit={(event) => { event.preventDefault(); updateGroup.mutate({ action: "invite", email: inviteEmail }); setInviteEmail(""); }} className="card space-y-3"><h3 className="font-semibold">Invite member</h3><Field label="Email"><input value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} type="email" className={inputClass} required /></Field><button className={buttonClass + " w-full"}><UserPlus size={16} />Send invite</button></form></div>}
+        {tab === "members" && <div className="grid gap-4 lg:grid-cols-[2fr_1fr]"><div className="space-y-4"><div className="card"><h3 className="mb-3 font-semibold">Members</h3><div className="space-y-2">{groupDoc.members.map((member: any) => <div key={member._id} className="flex items-center justify-between rounded-xl bg-slate-50 p-3 dark:bg-slate-900"><div><p className="font-medium">{member.name}</p><p className="text-sm text-slate-500">{member.email}</p></div><button onClick={() => updateGroup.mutate({ action: "remove-member", userId: member._id })} className="rounded-lg p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950"><UserMinus size={16} /></button></div>)}</div></div><div className="card"><h3 className="mb-3 font-semibold">Pending invites</h3>{invites.length ? <div className="space-y-2">{invites.map((invite: any) => <div key={invite._id} className="rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-900"><p className="font-medium">{invite.invitedUserId?.name ?? invite.email ?? "Invite link"}</p><p className="text-slate-500">{invite.mode === "link" ? "Shareable link" : invite.invitedUserId?.email ?? invite.email} · pending</p></div>)}</div> : <EmptyState title="No pending invites" />}</div></div><div className="space-y-4"><form onSubmit={(event) => { event.preventDefault(); updateGroup.mutate({ action: "invite-user", email: inviteEmail }); setInviteEmail(""); }} className="card space-y-3"><h3 className="font-semibold">Send request to existing user</h3>{updateGroup.error && <StatusBanner kind="error">{updateGroup.error.message}</StatusBanner>}<p className="text-sm text-slate-500">Enter an email that already has an account. The user will see a pending request and must accept it.</p><Field label="Existing user email"><input value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} type="email" className={inputClass} required /></Field><button disabled={updateGroup.isPending} className={buttonClass + " w-full"}><UserPlus size={16} />Send request</button></form><div className="card space-y-3"><h3 className="font-semibold">Custom invite link</h3><p className="text-sm text-slate-500">Generate a link and share it manually. Anyone logged in with the link can accept and join.</p><button onClick={() => updateGroup.mutate({ action: "create-invite-link" })} className={buttonClass + " w-full"} type="button"><Copy size={16} />Generate invite link</button>{inviteLink && <div className="rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-900"><p className="break-all">{inviteLink}</p><button className={ghostButtonClass + " mt-2 w-full"} type="button" onClick={() => navigator.clipboard.writeText(inviteLink)}>Copy link</button></div>}</div></div></div>}
 
         {tab === "analytics" && <div className="grid gap-4 lg:grid-cols-2"><div className="card"><h3 className="mb-3 font-semibold">Monthly spending</h3>{analytics.data?.monthly?.length ? <MonthlyChart data={analytics.data.monthly} /> : <EmptyState title="No analytics yet" />}</div><div className="card"><h3 className="mb-3 font-semibold">Category mix</h3>{(analytics.data?.categories ?? []).map((row: any) => <div key={row.category} className="mb-2 flex justify-between rounded-xl bg-slate-50 p-3 dark:bg-slate-900"><span>{row.category}</span><b>{formatMoney(row.total, currency)}</b></div>)}</div></div>}
 

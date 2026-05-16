@@ -4,8 +4,8 @@ const UserSchema = new Schema({
   email: { type: String, required: true, unique: true, index: true, lowercase: true },
   password: { type: String, required: true },
   avatar: String,
-  currency: { type: String, default: "USD" },
-  timezone: { type: String, default: "UTC" },
+  currency: { type: String, default: "INR" },
+  timezone: { type: String, default: "Asia/Kolkata" },
   theme: { type: String, enum: ["light", "dark", "system"], default: "system" },
   notificationSettings: {
     expenseAlerts: { type: Boolean, default: true },

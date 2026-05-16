@@ -2,7 +2,7 @@ import { z } from "zod";
 export const expenseSchema = z.object({
   title: z.string().min(1),
   amount: z.number().positive(),
-  currency: z.string().default("USD"),
+  currency: z.string().default("INR"),
   paidBy: z.string(),
   payers: z.array(z.object({ userId: z.string(), amount: z.number().positive() })).optional(),
   splitBetween: z.array(z.object({

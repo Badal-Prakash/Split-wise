@@ -9,7 +9,7 @@ type Edge = { fromUser: string; toUser: string; amount: number };
 type UserLite = { _id?: string; id?: string; name: string; email?: string; currency?: string };
 const idOf = (user: UserLite) => String(user._id ?? user.id);
 
-export function SettleModal({ open, onClose, onSaved, me, users = [], balances = [], groupId, currency = "USD" }: { open: boolean; onClose: () => void; onSaved?: () => void; me?: UserLite; users?: UserLite[]; balances?: Edge[]; groupId?: string; currency?: string }) {
+export function SettleModal({ open, onClose, onSaved, me, users = [], balances = [], groupId, currency = "INR" }: { open: boolean; onClose: () => void; onSaved?: () => void; me?: UserLite; users?: UserLite[]; balances?: Edge[]; groupId?: string; currency?: string }) {
   const meId = me ? idOf(me) : "";
   const candidates = useMemo(() => balances.filter((edge) => edge.fromUser === meId || edge.toUser === meId), [balances, meId]);
   const [selected, setSelected] = useState("");

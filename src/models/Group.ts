@@ -7,7 +7,7 @@ const GroupSchema = new Schema({
   expenses: [{ type: Schema.Types.ObjectId, ref: "Expense" }],
   category: String,
   categories: [String],
-  defaultCurrency: { type: String, default: "USD" },
+  defaultCurrency: { type: String, default: "INR" },
   avatar: String,
   simplifiedDebts: { type: Boolean, default: true },
   archivedAt: Date,

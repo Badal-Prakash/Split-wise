@@ -26,10 +26,18 @@ export function toCsv(rows: Record<string, unknown>[]) {
   return [headers.join(","), ...rows.map((row) => headers.map((header) => escape(row[header])).join(","))].join("\n");
 }
 
-export function formatMoney(amount = 0, currency = "USD") {
+export function formatMoney(amount = 0, currency = "INR") {
   try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(amount);
+    return new Intl.NumberFormat("en-IN", { style: "currency", currency }).format(amount);
   } catch {
     return `${currency} ${amount.toFixed(2)}`;
   }
+}
+
+export function formatIndianDate(value: string | Date) {
+  return new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "Asia/Kolkata" }).format(new Date(value));
+}
+
+export function formatIndianDateTime(value: string | Date) {
+  return new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" }).format(new Date(value));
 }

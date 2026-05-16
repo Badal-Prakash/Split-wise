@@ -28,7 +28,7 @@ export function ExpenseModal({ open, onClose, onSaved, me, groups = [], initialG
   const [groupId, setGroupId] = useState(initialGroupId ?? "");
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("0");
-  const [currency, setCurrency] = useState(me?.currency ?? "USD");
+  const [currency, setCurrency] = useState(me?.currency ?? "INR");
   const [paidBy, setPaidBy] = useState(me ? idOf(me) : "");
   const [splitType, setSplitType] = useState<SplitType>("equal");
   const [participants, setParticipants] = useState<string[]>(me ? [idOf(me)] : []);
@@ -66,7 +66,7 @@ export function ExpenseModal({ open, onClose, onSaved, me, groups = [], initialG
   useEffect(() => {
     if (!me) return;
     const meId = idOf(me);
-    setCurrency((value) => value || me.currency || "USD");
+    setCurrency((value) => value || me.currency || "INR");
     setPaidBy((value) => value || meId);
     setParticipants((value) => value.length ? value : [meId]);
   }, [me]);

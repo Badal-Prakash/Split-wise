@@ -10,7 +10,7 @@ const settlementSchema = z.object({
   fromUser: z.string(),
   toUser: z.string(),
   amount: z.number().positive(),
-  currency: z.string().default("USD"),
+  currency: z.string().default("INR"),
   paymentMethod: z.enum(["cash", "upi", "bank", "card", "other"]).default("cash"),
   status: z.enum(["pending", "partial", "settled"]).default("settled"),
   groupId: z.string().optional(),

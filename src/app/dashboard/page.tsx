@@ -43,7 +43,7 @@ export default function Dashboard() {
 
   const monthly = useMemo(() => analytics.data?.monthly?.map((row: any) => ({ month: row.month, total: row.total })) ?? [], [analytics.data]);
   const currentUser = balances.data?.summary?.currentUser;
-  const currency = me.data?.currency ?? "USD";
+  const currency = me.data?.currency ?? "INR";
 
   return (
     <AppShell>

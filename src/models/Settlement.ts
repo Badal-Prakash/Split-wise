@@ -3,7 +3,7 @@ const SettlementSchema = new Schema({
   fromUser: { type: Schema.Types.ObjectId, ref: "User", required: true },
   toUser: { type: Schema.Types.ObjectId, ref: "User", required: true },
   amount: { type: Number, required: true },
-  currency: { type: String, default: "USD" },
+  currency: { type: String, default: "INR" },
   paymentMethod: { type: String, enum: ["cash","upi","bank","card","other"], default: "cash" },
   notes: String,
   history: [{ actorId: Schema.Types.ObjectId, status: String, amount: Number, notes: String, createdAt: { type: Date, default: Date.now } }],

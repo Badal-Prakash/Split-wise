@@ -21,7 +21,8 @@ export function proxy(req: NextRequest) {
   }
 
   const protectedPaths = ["/dashboard", "/groups", "/expenses", "/settle", "/friends", "/activity", "/search", "/analytics", "/import", "/profile", "/notifications"];
-  if (protectedPaths.some((path) => req.nextUrl.pathname.startsWith(path)) && !req.cookies.get("accessToken")) {
+  const publicGroupJoin = req.nextUrl.pathname.startsWith("/groups/join");
+  if (!publicGroupJoin && protectedPaths.some((path) => req.nextUrl.pathname.startsWith(path)) && !req.cookies.get("accessToken")) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 

@@ -17,7 +17,7 @@ export default function Analytics() {
   const analytics = useQuery({ queryKey: ["analytics", filters], queryFn: () => apiRequest<any>(`/api/analytics/summary?${query}`) });
   const groups = useQuery({ queryKey: ["groups"], queryFn: () => apiRequest<any[]>("/api/groups") });
   const me = useQuery({ queryKey: ["me"], queryFn: () => apiRequest<any>("/api/me") });
-  const currency = me.data?.currency ?? "USD";
+  const currency = me.data?.currency ?? "INR";
   const categoryRows = analytics.data?.categories ?? [];
   const monthlyRows = analytics.data?.monthly ?? [];
   const exportRows = useMemo(() => [

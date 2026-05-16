@@ -20,7 +20,7 @@ const CommentSchema = new Schema({
 const ExpenseSchema = new Schema({
   title: { type: String, required: true },
   amount: { type: Number, required: true },
-  currency: { type: String, default: "USD" },
+  currency: { type: String, default: "INR" },
   paidBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   payers: [PayerSchema],
   splitBetween: [SplitSchema],

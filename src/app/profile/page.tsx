@@ -11,7 +11,7 @@ import { apiRequest, downloadFile } from "@/lib/api-client";
 export default function Profile() {
   const queryClient = useQueryClient();
   const profile = useQuery({ queryKey: ["profile"], queryFn: () => apiRequest<any>("/api/profile") });
-  const [form, setForm] = useState<any>({ name: "", avatar: "", currency: "USD", timezone: "UTC", theme: "system", notificationSettings: {} });
+  const [form, setForm] = useState<any>({ name: "", avatar: "", currency: "INR", timezone: "Asia/Kolkata", theme: "system", notificationSettings: {} });
   const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "" });
   useEffect(() => { if (profile.data) setForm({ ...profile.data, notificationSettings: profile.data.notificationSettings ?? {} }); }, [profile.data]);
   const save = useMutation({ mutationFn: () => apiRequest("/api/profile", { method: "PATCH", body: JSON.stringify({ ...form, ...passwords }) }), onSuccess: () => { setPasswords({ currentPassword: "", newPassword: "" }); queryClient.invalidateQueries({ queryKey: ["profile"] }); } });
@@ -35,7 +35,7 @@ export default function Profile() {
             {save.isSuccess && <StatusBanner kind="success">Profile saved.</StatusBanner>}
             <Field label="Name"><input value={form.name ?? ""} onChange={(event) => setForm((value: any) => ({ ...value, name: event.target.value }))} className={inputClass} /></Field>
             <Field label="Avatar URL"><input value={form.avatar ?? ""} onChange={(event) => setForm((value: any) => ({ ...value, avatar: event.target.value }))} className={inputClass} /></Field>
-            <div className="grid gap-3 md:grid-cols-2"><Field label="Preferred currency"><input value={form.currency ?? "USD"} onChange={(event) => setForm((value: any) => ({ ...value, currency: event.target.value.toUpperCase() }))} maxLength={3} className={inputClass} /></Field><Field label="Timezone"><input value={form.timezone ?? "UTC"} onChange={(event) => setForm((value: any) => ({ ...value, timezone: event.target.value }))} className={inputClass} /></Field></div>
+            <div className="grid gap-3 md:grid-cols-2"><Field label="Preferred currency"><input value={form.currency ?? "INR"} onChange={(event) => setForm((value: any) => ({ ...value, currency: event.target.value.toUpperCase() }))} maxLength={3} className={inputClass} /></Field><Field label="Timezone"><input value={form.timezone ?? "Asia/Kolkata"} onChange={(event) => setForm((value: any) => ({ ...value, timezone: event.target.value }))} className={inputClass} /></Field></div>
             <Field label="Theme"><select value={form.theme ?? "system"} onChange={(event) => setForm((value: any) => ({ ...value, theme: event.target.value }))} className={inputClass}><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></Field>
           </div>
           <div className="card space-y-3">

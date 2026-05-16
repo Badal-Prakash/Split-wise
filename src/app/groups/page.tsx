@@ -16,7 +16,7 @@ export default function Groups() {
   const [editing, setEditing] = useState<any>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("General");
-  const [defaultCurrency, setDefaultCurrency] = useState("USD");
+  const [defaultCurrency, setDefaultCurrency] = useState("INR");
   const groups = useQuery({ queryKey: ["groups", query, sort], queryFn: () => apiRequest<any[]>(`/api/groups?q=${encodeURIComponent(query)}&sort=${sort}`) });
   const me = useQuery({ queryKey: ["me"], queryFn: () => apiRequest<any>("/api/me") });
 
@@ -32,7 +32,7 @@ export default function Groups() {
     setEditing(group);
     setName(group.name);
     setCategory(group.category ?? "General");
-    setDefaultCurrency(group.defaultCurrency ?? "USD");
+    setDefaultCurrency(group.defaultCurrency ?? "INR");
     setOpen(true);
   }
 
@@ -58,9 +58,9 @@ export default function Groups() {
               </div>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900"><p className="text-slate-500">Expenses</p><b>{group.stats?.expenseCount ?? 0}</b></div>
-                <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900"><p className="text-slate-500">Total</p><b>{formatMoney(group.stats?.totalExpenses ?? 0, group.defaultCurrency ?? me.data?.currency ?? "USD")}</b></div>
+                <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900"><p className="text-slate-500">Total</p><b>{formatMoney(group.stats?.totalExpenses ?? 0, group.defaultCurrency ?? me.data?.currency ?? "INR")}</b></div>
               </div>
-              {group.stats?.recentExpense ? <p className="text-sm text-slate-500">Recent: {group.stats.recentExpense.title} · {formatMoney(group.stats.recentExpense.amount, group.defaultCurrency ?? "USD")}</p> : <p className="text-sm text-slate-500">No expenses yet</p>}
+              {group.stats?.recentExpense ? <p className="text-sm text-slate-500">Recent: {group.stats.recentExpense.title} · {formatMoney(group.stats.recentExpense.amount, group.defaultCurrency ?? "INR")}</p> : <p className="text-sm text-slate-500">No expenses yet</p>}
               <div className="flex flex-wrap gap-1">{(group.members ?? []).slice(0, 5).map((member: any) => <span key={member._id} className="rounded-full bg-emerald-50 px-2 py-1 text-xs text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">{member.name}</span>)}</div>
               <Link href={`/groups/${group._id}`} className={ghostButtonClass + " w-full"}><UserPlus size={16} />Open group</Link>
             </div>)}

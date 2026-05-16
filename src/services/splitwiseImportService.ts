@@ -20,7 +20,7 @@ export function previewImport(rows: ImportRow[]) {
     description: r.Description || r.description || r.Details || r.details,
     category: r.Category || r.category || "General",
     cost: Number(r.Cost || r.cost || r.Amount || 0),
-    currency: r.Currency || r.currency || "USD",
+    currency: r.Currency || r.currency || "INR",
     group: r.Group || r.group || "Imported",
     paidBy: r["Paid by"] || r.paidBy || r.Payer || "",
     owedBy: r["Owed by"] || r.owedBy || r.Participant || "",
