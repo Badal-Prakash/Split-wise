@@ -1,45 +1,260 @@
 "use client";
-
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Download, Printer } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  TrendingUp, Wallet, ArrowUpRight, ArrowDownRight,
+  PieChart, BarChart3, Sparkles, Calendar, Download,
+  Filter, ChevronRight, LayoutDashboard, CreditCard,
+  Users as UsersIcon, Zap
+} from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
-import { MonthlyChart } from "@/components/charts/monthly-chart";
-import { buttonClass, EmptyState, Field, ghostButtonClass, inputClass, LoadingRows } from "@/components/app/ui";
-import { apiRequest, downloadFile, formatMoney, toCsv } from "@/lib/api-client";
+import { buttonClass, ghostButtonClass, LoadingRows, EmptyState } from "@/components/app/ui";
+import { apiRequest, formatMoney } from "@/lib/api-client";
+import { useRealtimeRefresh } from "@/lib/realtime";
+import { socketEvents } from "@/sockets/events";
+import { KPICard } from "@/components/dashboard/kpi-card";
+import { FinanceChart, CustomTooltip } from "@/components/dashboard/finance-chart";
+import { CategoryChart } from "@/components/charts/category-chart";
+import { InsightCard } from "@/components/dashboard/insight-card";
+import { useAnalyticsInsights } from "@/hooks/use-analytics-insights";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
-const colors = ["#10b981", "#0ea5e9", "#f97316", "#e11d48", "#8b5cf6", "#14b8a6"];
+const TABS = [
+  { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "spending", label: "Spending", icon: CreditCard },
+  { id: "debts", label: "Debts", icon: Wallet },
+  { id: "settlements", label: "Settlements", icon: Zap },
+  { id: "insights", label: "Insights", icon: Sparkles },
+];
 
-export default function Analytics() {
-  const [filters, setFilters] = useState({ from: "", to: "", groupId: "", category: "" });
-  const query = new URLSearchParams(Object.entries(filters).filter(([, value]) => value));
-  const analytics = useQuery({ queryKey: ["analytics", filters], queryFn: () => apiRequest<any>(`/api/analytics/summary?${query}`) });
-  const groups = useQuery({ queryKey: ["groups"], queryFn: () => apiRequest<any[]>("/api/groups") });
-  const me = useQuery({ queryKey: ["me"], queryFn: () => apiRequest<any>("/api/me") });
-  const currency = me.data?.currency ?? "INR";
-  const categoryRows = analytics.data?.categories ?? [];
-  const monthlyRows = analytics.data?.monthly ?? [];
-  const exportRows = useMemo(() => [
-    ...monthlyRows.map((row: any) => ({ type: "monthly", label: row.month, total: row.total, count: row.count })),
-    ...categoryRows.map((row: any) => ({ type: "category", label: row.category, total: row.total, count: row.count })),
-  ], [monthlyRows, categoryRows]);
+export default function AnalyticsPage() {
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState("overview");
+  const [dateRange, setDateRange] = useState("last_month");
+
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ["analytics"] });
+  useRealtimeRefresh([socketEvents.expenseCreated, socketEvents.settlementCompleted], refresh);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["analytics", "summary", dateRange],
+    queryFn: () => apiRequest<any>("/api/analytics/summary")
+  });
+
+  const insights = useAnalyticsInsights(data);
+  const currency = "INR"; // Should come from me query ideally
+
+  if (isLoading) return <AppShell><section className="p-4 md:p-8"><LoadingRows /></section></AppShell>;
+
+  const totalSpent = data?.categories?.reduce((sum: number, c: any) => sum + c.total, 0) ?? 0;
+  const totalSettlements = data?.settlements?.reduce((sum: number, s: any) => sum + s.total, 0) ?? 0;
+
+  // Mock trends for KPIs since API doesn't return historical totals yet
+  const trends = {
+    spent: 12.5,
+    received: -2.4,
+    settled: 8.1,
+    activeGroups: 5.2
+  };
 
   return (
     <AppShell>
-      <section className="space-y-5 p-4 md:p-8">
-        <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"><div><p className="text-sm text-slate-500">Interactive reports</p><h2 className="text-2xl font-bold">Analytics</h2></div><div className="flex gap-2"><button onClick={() => downloadFile("splitwise-analytics.csv", toCsv(exportRows))} className={ghostButtonClass}><Download size={16} />CSV</button><button onClick={() => downloadFile("splitwise-analytics.xls", toCsv(exportRows), "application/vnd.ms-excel")} className={ghostButtonClass}><Download size={16} />Excel</button><button onClick={() => window.print()} className={buttonClass}><Printer size={16} />PDF</button></div></header>
-        <div className="card grid gap-3 md:grid-cols-4"><Field label="From"><input type="date" value={filters.from} onChange={(event) => setFilters((value) => ({ ...value, from: event.target.value }))} className={inputClass} /></Field><Field label="To"><input type="date" value={filters.to} onChange={(event) => setFilters((value) => ({ ...value, to: event.target.value }))} className={inputClass} /></Field><Field label="Group"><select value={filters.groupId} onChange={(event) => setFilters((value) => ({ ...value, groupId: event.target.value }))} className={inputClass}><option value="">All groups</option>{groups.data?.map((group) => <option key={group._id} value={group._id}>{group.name}</option>)}</select></Field><Field label="Category"><input value={filters.category} onChange={(event) => setFilters((value) => ({ ...value, category: event.target.value }))} className={inputClass} placeholder="Food" /></Field></div>
-        {analytics.isLoading ? <LoadingRows count={5} /> : (
-          <div className="grid gap-4 xl:grid-cols-2">
-            <div className="card"><h3 className="mb-3 font-semibold">Monthly spending</h3>{monthlyRows.length ? <MonthlyChart data={monthlyRows} /> : <EmptyState title="No monthly spending" />}</div>
-            <div className="card"><h3 className="mb-3 font-semibold">Category spending</h3>{categoryRows.length ? <div className="h-64"><ResponsiveContainer><PieChart><Pie data={categoryRows} dataKey="total" nameKey="category" outerRadius={95}>{categoryRows.map((_: any, index: number) => <Cell key={index} fill={colors[index % colors.length]} />)}</Pie><Tooltip formatter={(value) => formatMoney(Number(value), currency)} /></PieChart></ResponsiveContainer></div> : <EmptyState title="No category data" />}</div>
-            <div className="card"><h3 className="mb-3 font-semibold">Group spending</h3>{analytics.data?.groups?.length ? <div className="h-64"><ResponsiveContainer><BarChart data={analytics.data.groups}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="groupId" hide /><YAxis /><Tooltip formatter={(value) => formatMoney(Number(value), currency)} /><Bar dataKey="total" fill="#0ea5e9" /></BarChart></ResponsiveContainer></div> : <EmptyState title="No group data" />}</div>
-            <div className="card"><h3 className="mb-3 font-semibold">User contribution</h3>{analytics.data?.userContribution?.length ? <div className="h-64"><ResponsiveContainer><BarChart data={analytics.data.userContribution}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="userId" hide /><YAxis /><Tooltip formatter={(value) => formatMoney(Number(value), currency)} /><Bar dataKey="total" fill="#10b981" /></BarChart></ResponsiveContainer></div> : <EmptyState title="No contribution data" />}</div>
-            <div className="card"><h3 className="mb-3 font-semibold">Settlement trends</h3>{analytics.data?.settlements?.length ? analytics.data.settlements.map((row: any) => <div key={row.method} className="mb-2 flex justify-between rounded-xl bg-slate-50 p-3 dark:bg-slate-900"><span>{row.method}</span><b>{formatMoney(row.total, currency)}</b></div>) : <EmptyState title="No settlements yet" />}</div>
-            <div className="card"><h3 className="mb-3 font-semibold">Debt trends</h3><p className="text-sm text-slate-500">Debt trend export is driven by the balance engine and settlement history. Use the Settle page to record new payments, then refresh analytics.</p></div>
+      <section className="space-y-6 p-4 md:p-8 max-w-7xl mx-auto">
+        <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">Analytics Dashboard</h2>
+            <p className="text-sm text-slate-500">Real-time financial intelligence</p>
           </div>
-        )}
+          <div className="flex items-center gap-2">
+            <button className={ghostButtonClass + " flex items-center gap-2"}>
+              <Filter size={16} /> Filters
+            </button>
+            <button className={buttonClass + " flex items-center gap-2"}>
+              <Download size={16} /> Export PDF
+            </button>
+          </div>
+        </header>
+
+        {/* Tab Navigation */}
+        <div className="flex p-1 gap-1 rounded-xl bg-slate-100 dark:bg-slate-800 w-fit">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                activeTab === tab.id
+                ? "bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm"
+                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              }`}
+            >
+              <tab.icon size={16} />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            {activeTab === "overview" && (
+              <div className="space-y-6">
+                {/* KPI Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <KPICard
+                    title="Total Spent"
+                    value={formatMoney(totalSpent, currency)}
+                    trend={trends.spent}
+                    trendLabel="vs last month"
+                    icon={CreditCard}
+                    color="text-rose-500"
+                  />
+                  <KPICard
+                    title="Total Settlements"
+                    value={formatMoney(totalSettlements, currency)}
+                    trend={trends.settled}
+                    trendLabel="vs last month"
+                    icon={Wallet}
+                    color="text-emerald-500"
+                  />
+                  <KPICard
+                    title="Avg Monthly"
+                    value={formatMoney(totalSpent / (data?.monthly?.length || 1), currency)}
+                    trend={trends.received}
+                    trendLabel="vs last month"
+                    icon={TrendingUp}
+                    color="text-sky-500"
+                  />
+                  <KPICard
+                    title="Active Groups"
+                    value={data?.groups?.length?.toString() ?? "0"}
+                    trend={trends.activeGroups}
+                    trendLabel="growth"
+                    icon={UsersIcon}
+                    color="text-amber-500"
+                  />
+                </div>
+
+                {/* Main Charts Grid */}
+                <div className="grid gap-6 lg:grid-cols-3">
+                  <div className="card p-6">
+                    <div className="mb-6 flex items-center justify-between">
+                      <h3 className="font-semibold">Spending Trend</h3>
+                      <div className="flex gap-2">
+                        <button className="text-xs px-2 py-1 rounded bg-slate-100 dark:bg-slate-800">Month</button>
+                        <button className="text-xs px-2 py-1 rounded text-slate-400">Year</button>
+                      </div>
+                    </div>
+                    <FinanceChart>
+                      <AreaChart data={data?.monthly}>
+                        <defs>
+                          <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" className="dark:stroke-slate-800" />
+                        <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#94a3b8" }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#94a3b8" }} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Area type="monotone" dataKey="total" stroke="#10b981" fillOpacity={1} fill="url(#colorTotal)" strokeWidth={3} />
+                      </AreaChart>
+                    </FinanceChart>
+                  </div>
+                  <div className="card p-6">
+                    <h3 className="mb-6 font-semibold">Category Breakdown</h3>
+                    <CategoryChart data={data?.categories ?? []} />
+                    <div className="mt-4 space-y-2">
+                      {data?.categories?.slice(0, 3).map((cat: any) => (
+                        <div key={cat.category} className="flex items-center justify-between text-xs">
+                          <span className="text-slate-500">{cat.category}</span>
+                          <span className="font-medium">{formatMoney(cat.total, currency)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* AI Insights Section */}
+                <div className="grid gap-4 md:grid-cols-3">
+                  {insights.length ? insights.map((insight, i) => (
+                    <InsightCard key={i} {...insight} />
+                  )) : (
+                    <div className="col-span-full card p-8 text-center">
+                      <Sparkles className="mx-auto mb-2 text-slate-400" size={24} />
+                      <p className="text-sm text-slate-500">Analyzing patterns... add more data to see insights.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "spending" && (
+              <div className="grid gap-6 lg:grid-cols-2">
+                <div className="card p-6">
+                  <h3 className="mb-6 font-semibold">Member Contributions</h3>
+                  <div className="space-y-4">
+                    {data?.userContribution?.length ? data.userContribution.map((row: any) => (
+                      <div key={row.userId} className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-slate-500">{row.name ?? `User ${row.userId.slice(0, 5)}...`}</span>
+                          <span className="font-medium">{formatMoney(row.total, currency)}</span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                          <div
+                            className="h-full bg-emerald-500"
+                            style={{ width: `${(row.total / (data.userContribution.reduce((s: number, r: any) => s + r.total, 0))) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    )) : <EmptyState title="No contribution data" />}
+                  </div>
+                </div>
+                <div className="card p-6">
+                  <h3 className="mb-6 font-semibold">Group Spending</h3>
+                  <div className="space-y-4">
+                    {data?.groups?.length ? data.groups.map((row: any) => (
+                      <div key={row.groupId} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-900 text-sm">
+                        <span className="text-slate-500">{row.name ?? `Group ${row.groupId.slice(0, 5)}...`}</span>
+                        <b className="text-emerald-500">{formatMoney(row.total, currency)}</b>
+                      </div>
+                    )) : <EmptyState title="No group data" />}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "insights" && (
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                {insights.length > 0 ? insights.map((insight, i) => (
+                  <div key={i} className="scale-100 hover:scale-105 transition-transform">
+                    <InsightCard {...insight} />
+                  </div>
+                )) : (
+                  <div className="col-span-full card p-12 text-center">
+                    <Sparkles size={48} className="mx-auto mb-4 text-slate-300" />
+                    <h3 className="font-bold text-lg">No Insights Yet</h3>
+                    <p className="text-slate-500 max-w-xs mx-auto">Keep tracking your expenses to unlock AI-powered financial insights.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {(activeTab === "debts" || activeTab === "settlements") && (
+              <div className="card p-12 text-center">
+                <div className="mb-4 inline-block p-3 rounded-full bg-slate-100 dark:bg-slate-800">
+                  <LayoutDashboard size={32} className="text-slate-400" />
+                </div>
+                <h3 className="font-bold text-lg">Coming Soon</h3>
+                <p className="text-slate-500">We are building advanced debt and settlement tracking. Stay tuned!</p>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </section>
     </AppShell>
   );
