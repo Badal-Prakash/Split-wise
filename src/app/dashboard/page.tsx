@@ -49,23 +49,22 @@ export default function Dashboard() {
   return (
     <AppShell>
       <section className="space-y-5 p-4 md:p-8">
-        <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <header className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm text-slate-500">Good to see you, {me.data?.name ?? "friend"}</p>
-            <h2 className="text-2xl font-bold">Dashboard</h2>
+            <h2 className="text-xl font-bold md:text-2xl">Dashboard</h2>
           </div>
           <div id="quick-add" className="flex items-center gap-2">
             <ThemeToggle />
-            <button aria-label="Create group" title="Create group" onClick={() => setGroupOpen(true)} className={ghostButtonClass + " size-10 p-0"}><Users size={18} /></button>
-            <button aria-label="Settle up" title="Settle up" onClick={() => setSettleOpen(true)} className={ghostButtonClass + " size-10 p-0"}><WalletCards size={18} /></button>
-            <button aria-label="Add expense" title="Add expense" onClick={() => setExpenseOpen(true)} className={buttonClass + " size-10 p-0"}><Plus size={20} /></button>
+            <button aria-label="Create group" title="Create group" onClick={() => setGroupOpen(true)} className={ghostButtonClass + " size-11 p-0"}><Users size={24} /></button>
+            <button aria-label="Settle up" title="Settle up" onClick={() => setSettleOpen(true)} className={ghostButtonClass + " size-11 p-0"}><WalletCards size={24} /></button>
+            <button aria-label="Add expense" title="Add expense" onClick={() => setExpenseOpen(true)} className={buttonClass + " size-11 p-0"}><Plus size={26} /></button>
           </div>
         </header>
 
         <div className="grid grid-cols-3 gap-2">
-          <div className="card rounded-xl p-3"><p className="text-xs text-slate-500">Balance</p><b className={`block truncate text-base sm:text-2xl ${(currentUser?.netBalance ?? 0) >= 0 ? "text-emerald-500" : "text-rose-500"}`}>{formatMoney(currentUser?.netBalance ?? 0, currency)}</b></div>
-          <div className="card rounded-xl p-3"><p className="text-xs text-slate-500">Owe</p><b className="block truncate text-base sm:text-2xl">{formatMoney(currentUser?.totalOwing ?? 0, currency)}</b></div>
-          <div className="card rounded-xl p-3"><p className="text-xs text-slate-500">Owed</p><b className="block truncate text-base text-emerald-500 sm:text-2xl">{formatMoney(currentUser?.totalOwed ?? 0, currency)}</b></div>
+          <div className="card rounded-xl p-3"><p className="text-xs text-slate-500">Balance</p><b className={`block truncate text-sm sm:text-2xl ${(currentUser?.netBalance ?? 0) >= 0 ? "text-emerald-500" : "text-rose-500"}`}>{formatMoney(currentUser?.netBalance ?? 0, currency)}</b></div>
+          <div className="card rounded-xl p-3"><p className="text-xs text-slate-500">Owe</p><b className="block truncate text-sm sm:text-2xl">{formatMoney(currentUser?.totalOwing ?? 0, currency)}</b></div>
+          <div className="card rounded-xl p-3"><p className="text-xs text-slate-500">Owed</p><b className="block truncate text-sm text-emerald-500 sm:text-2xl">{formatMoney(currentUser?.totalOwed ?? 0, currency)}</b></div>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">

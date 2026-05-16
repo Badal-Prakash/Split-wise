@@ -45,6 +45,15 @@ export default function Groups() {
     const user = String(friendship.requesterId?._id ?? friendship.requesterId) === currentUserId ? friendship.addresseeId : friendship.requesterId;
     return { ...friendship, user };
   }), [friends.data, currentUserId]);
+  const groupPeople = useMemo(() => {
+    const byId = new Map<string, any>();
+    for (const group of activeGroups) {
+      for (const member of group.members ?? []) {
+        byId.set(String(member._id), { ...member, groupName: group.name });
+      }
+    }
+    return [...byId.values()];
+  }, [activeGroups]);
 
   return (
     <AppShell>
@@ -73,8 +82,8 @@ export default function Groups() {
           </div>
         ) : <EmptyState title="No groups found" body="Create a trip, home, office, or friends group to start sharing expenses." action={<button onClick={() => setOpen(true)} className={buttonClass}>Create group</button>} />}
         <div className="space-y-2">
-          <h3 className="font-semibold">Friends</h3>
-          {friends.isLoading ? <LoadingRows count={2} /> : friendRows.length ? <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{friendRows.map((friendship: any) => <div key={friendship._id} className="rounded-xl border border-slate-200 p-3 text-sm dark:border-slate-800"><p className="font-medium">{friendship.user?.name ?? "Friend"}</p><p className="truncate text-slate-500">{friendship.user?.email ?? friendship.status}</p></div>)}</div> : <StatusBanner>No friends yet. Search above to add people.</StatusBanner>}
+          <h3 className="font-semibold">People</h3>
+          {friends.isLoading ? <LoadingRows count={2} /> : friendRows.length ? <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{friendRows.map((friendship: any) => <div key={friendship._id} className="rounded-xl border border-slate-200 p-3 text-sm dark:border-slate-800"><p className="font-medium">{friendship.user?.name ?? "Friend"}</p><p className="truncate text-slate-500">{friendship.user?.email ?? friendship.status}</p></div>)}</div> : groupPeople.length ? <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{groupPeople.map((member: any) => <div key={member._id} className="rounded-xl border border-slate-200 p-3 text-sm dark:border-slate-800"><p className="font-medium">{member.name}</p><p className="truncate text-slate-500">{member.email ?? member.groupName}</p></div>)}</div> : <StatusBanner>Search above to add people.</StatusBanner>}
         </div>
       </section>
       <Modal title={editing ? "Edit group" : "Create group"} open={open} onClose={() => setOpen(false)}>
