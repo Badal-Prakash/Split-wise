@@ -4,7 +4,7 @@ import { connectDb, isDbConnectionError } from "@/lib/db";
 import { ok, fail } from "@/lib/http";
 import { User } from "@/models/User";
 import { loginSchema } from "@/validators/auth";
-import { signAccessToken, signRefreshToken } from "@/lib/auth";
+import { authCookieOptions, signAccessToken, signRefreshToken } from "@/lib/auth";
 export async function POST(req: Request) {
   try {
     await connectDb();
@@ -16,8 +16,8 @@ export async function POST(req: Request) {
     const jar = await cookies();
     const payload = { sub:user.id, email:user.email };
     const maxAge = body.remember === false ? undefined : 60 * 60 * 24 * 7;
-    jar.set("accessToken",signAccessToken(payload),{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax",path:"/",maxAge});
-    jar.set("refreshToken",signRefreshToken(payload),{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax",path:"/",maxAge});
+    jar.set("accessToken",signAccessToken(payload),authCookieOptions(maxAge));
+    jar.set("refreshToken",signRefreshToken(payload),authCookieOptions(maxAge));
     return ok({ id:user.id, name:user.name, email:user.email });
   } catch (error) {
     if (isDbConnectionError(error)) return fail("Database unavailable. Start MongoDB with `docker compose up -d mongo` and retry.", 503);
