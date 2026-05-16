@@ -25,7 +25,7 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const query: any = { $or: [{ fromUser: uid }, { toUser: uid }] };
   if (url.searchParams.get("groupId")) query.groupId = url.searchParams.get("groupId");
-  return ok(await Settlement.find(query).sort({ date: -1 }).lean());
+  return ok(await Settlement.find(query).populate("fromUser", "name email avatar").populate("toUser", "name email avatar").sort({ date: -1 }).lean());
 }
 
 export async function POST(req: Request) {

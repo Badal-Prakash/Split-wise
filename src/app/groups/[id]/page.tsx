@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, Plus, Trash2, UserMinus, UserPlus, WalletCards } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
+import { ActivityRow } from "@/components/app/activity-row";
 import { ExpenseModal } from "@/components/app/expense-modal";
 import { SettleModal } from "@/components/app/settle-modal";
 import { buttonClass, EmptyState, Field, ghostButtonClass, inputClass, LoadingRows, StatusBanner } from "@/components/app/ui";
@@ -76,7 +77,7 @@ export default function GroupDetails({ params }: { params: Promise<{ id: string 
 
         {tab === "analytics" && <div className="grid gap-4 lg:grid-cols-2"><div className="card"><h3 className="mb-3 font-semibold">Monthly spending</h3>{analytics.data?.monthly?.length ? <MonthlyChart data={analytics.data.monthly} /> : <EmptyState title="No analytics yet" />}</div><div className="card"><h3 className="mb-3 font-semibold">Category mix</h3>{(analytics.data?.categories ?? []).map((row: any) => <div key={row.category} className="mb-2 flex justify-between rounded-xl bg-slate-50 p-3 dark:bg-slate-900"><span>{row.category}</span><b>{formatMoney(row.total, currency)}</b></div>)}</div></div>}
 
-        {tab === "activity" && <div className="card">{activities.data?.length ? activities.data.map((activity) => <div key={activity._id} className="border-b border-slate-100 py-3 text-sm dark:border-slate-800"><p className="font-medium">{activity.type.replaceAll(".", " ")}</p><p className="text-slate-500">{new Date(activity.createdAt).toLocaleString()}</p></div>) : <EmptyState title="No activity yet" />}</div>}
+        {tab === "activity" && <div className="card">{activities.data?.length ? <div className="space-y-2">{activities.data.map((activity) => <ActivityRow key={activity._id} activity={activity} />)}</div> : <EmptyState title="No activity yet" />}</div>}
 
         {tab === "settings" && <form onSubmit={saveSettings} className="card max-w-2xl space-y-3"><Field label="Name"><input value={settings.name} onChange={(event) => setSettings((value) => ({ ...value, name: event.target.value }))} className={inputClass} /></Field><Field label="Category"><input value={settings.category} onChange={(event) => setSettings((value) => ({ ...value, category: event.target.value }))} className={inputClass} /></Field><Field label="Default currency"><input value={settings.defaultCurrency} onChange={(event) => setSettings((value) => ({ ...value, defaultCurrency: event.target.value.toUpperCase() }))} maxLength={3} className={inputClass} /></Field><div className="flex gap-2"><button className={buttonClass}>Save settings</button><button type="button" onClick={() => updateGroup.mutate({ action: "leave" })} className={ghostButtonClass}>Leave group</button><button type="button" onClick={() => updateGroup.mutate({ action: "delete" })} className="inline-flex items-center gap-2 rounded-xl bg-rose-500 px-4 py-2 text-sm font-semibold text-white"><Trash2 size={16} />Delete group</button></div></form>}
       </section>

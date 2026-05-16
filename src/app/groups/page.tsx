@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Edit3, Plus, Search, Trash2, UserPlus } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
@@ -10,14 +10,16 @@ import { apiRequest, formatMoney } from "@/lib/api-client";
 
 export default function Groups() {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState("recent");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("General");
   const [defaultCurrency, setDefaultCurrency] = useState("INR");
-  const groups = useQuery({ queryKey: ["groups", query, sort], queryFn: () => apiRequest<any[]>(`/api/groups?q=${encodeURIComponent(query)}&sort=${sort}`) });
+  const groups = useQuery({ queryKey: ["groups", query], queryFn: () => apiRequest<any[]>(`/api/groups?q=${encodeURIComponent(query)}&sort=recent`) });
+  const friends = useQuery({ queryKey: ["friends"], queryFn: () => apiRequest<any>("/api/friends") });
+  const userSearch = useQuery({ queryKey: ["people-search", query], enabled: query.trim().length > 1, queryFn: () => apiRequest<any>(`/api/search?q=${encodeURIComponent(query)}`) });
   const me = useQuery({ queryKey: ["me"], queryFn: () => apiRequest<any>("/api/me") });
 
   const save = useMutation({
@@ -27,6 +29,7 @@ export default function Groups() {
     onSuccess: () => { setOpen(false); setEditing(null); setName(""); queryClient.invalidateQueries({ queryKey: ["groups"] }); },
   });
   const remove = useMutation({ mutationFn: (id: string) => apiRequest(`/api/groups/${id}`, { method: "PATCH", body: JSON.stringify({ action: "delete" }) }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["groups"] }) });
+  const addFriend = useMutation({ mutationFn: (userId: string) => apiRequest("/api/friends", { method: "POST", body: JSON.stringify({ userId, status: "pending" }) }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["friends"] }) });
 
   function startEdit(group: any) {
     setEditing(group);
@@ -37,35 +40,42 @@ export default function Groups() {
   }
 
   const activeGroups = useMemo(() => groups.data ?? [], [groups.data]);
+  const currentUserId = friends.data?.currentUserId;
+  const friendRows = useMemo(() => (friends.data?.friendships ?? []).map((friendship: any) => {
+    const user = String(friendship.requesterId?._id ?? friendship.requesterId) === currentUserId ? friendship.addresseeId : friendship.requesterId;
+    return { ...friendship, user };
+  }), [friends.data, currentUserId]);
 
   return (
     <AppShell>
       <section className="space-y-5 p-4 md:p-8">
         <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div><p className="text-sm text-slate-500">Manage shared spaces</p><h2 className="text-2xl font-bold">Groups</h2></div>
-          <button onClick={() => { setEditing(null); setName(""); setOpen(true); }} className={buttonClass}><Plus size={16} />Create group</button>
+          <div><p className="text-sm text-slate-500">Groups and friends</p><h2 className="text-2xl font-bold">People</h2></div>
         </header>
-        <div className="card grid gap-3 md:grid-cols-[1fr_180px]">
-          <div className="relative"><Search className="absolute left-3 top-2.5 text-slate-400" size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} className={`${inputClass} pl-9`} placeholder="Search groups" /></div>
-          <select value={sort} onChange={(event) => setSort(event.target.value)} className={inputClass}><option value="recent">Recently active</option><option value="name">Name</option></select>
+        <div className="grid grid-cols-[1fr_auto] gap-2">
+          <div className="relative"><Search className="absolute left-3 top-2.5 text-slate-400" size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} className={`${inputClass} pl-9`} placeholder="Search groups or friends" /></div>
+          <button aria-label="Create group" title="Create group" onClick={() => { setEditing(null); setName(""); setOpen(true); }} className={buttonClass + " size-10 p-0"}><Plus size={18} /></button>
         </div>
+        {userSearch.data?.users?.length ? <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{userSearch.data.users.slice(0, 6).map((user: any) => <div key={user._id} className="flex items-center justify-between rounded-xl border border-slate-200 p-3 text-sm dark:border-slate-800"><div className="min-w-0"><p className="truncate font-medium">{user.name}</p><p className="truncate text-slate-500">{user.email}</p></div><button aria-label={`Add ${user.name}`} onClick={() => addFriend.mutate(user._id)} className={ghostButtonClass + " size-9 shrink-0 p-0"}><UserPlus size={16} /></button></div>)}</div> : null}
         {groups.isLoading ? <LoadingRows count={6} /> : activeGroups.length ? (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {activeGroups.map((group) => <div className="card space-y-3" key={group._id}>
+            {activeGroups.map((group) => <div role="button" tabIndex={0} onClick={() => router.push(`/groups/${group._id}`)} onKeyDown={(event) => { if (event.key === "Enter") router.push(`/groups/${group._id}`); }} className="card cursor-pointer space-y-3 transition hover:border-emerald-500/60" key={group._id}>
               <div className="flex items-start justify-between gap-2">
-                <Link href={`/groups/${group._id}`}><h3 className="font-semibold">{group.name}</h3><p className="text-sm text-slate-500">{group.category ?? "General"} · {group.members?.length ?? 0} members</p></Link>
-                <div className="flex gap-1"><button aria-label="Edit group" onClick={() => startEdit(group)} className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-900"><Edit3 size={15} /></button><button aria-label="Delete group" onClick={() => remove.mutate(group._id)} className="rounded-lg p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950"><Trash2 size={15} /></button></div>
+                <div><h3 className="font-semibold">{group.name}</h3><p className="text-sm text-slate-500">{group.category ?? "General"} · {group.members?.length ?? 0} members</p></div>
+                <div className="flex gap-1"><button aria-label="Edit group" onClick={(event) => { event.stopPropagation(); startEdit(group); }} className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-900"><Edit3 size={15} /></button><button aria-label="Delete group" onClick={(event) => { event.stopPropagation(); remove.mutate(group._id); }} className="rounded-lg p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950"><Trash2 size={15} /></button></div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900"><p className="text-slate-500">Expenses</p><b>{group.stats?.expenseCount ?? 0}</b></div>
                 <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900"><p className="text-slate-500">Total</p><b>{formatMoney(group.stats?.totalExpenses ?? 0, group.defaultCurrency ?? me.data?.currency ?? "INR")}</b></div>
               </div>
-              {group.stats?.recentExpense ? <p className="text-sm text-slate-500">Recent: {group.stats.recentExpense.title} · {formatMoney(group.stats.recentExpense.amount, group.defaultCurrency ?? "INR")}</p> : <p className="text-sm text-slate-500">No expenses yet</p>}
               <div className="flex flex-wrap gap-1">{(group.members ?? []).slice(0, 5).map((member: any) => <span key={member._id} className="rounded-full bg-emerald-50 px-2 py-1 text-xs text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">{member.name}</span>)}</div>
-              <Link href={`/groups/${group._id}`} className={ghostButtonClass + " w-full"}><UserPlus size={16} />Open group</Link>
             </div>)}
           </div>
         ) : <EmptyState title="No groups found" body="Create a trip, home, office, or friends group to start sharing expenses." action={<button onClick={() => setOpen(true)} className={buttonClass}>Create group</button>} />}
+        <div className="space-y-2">
+          <h3 className="font-semibold">Friends</h3>
+          {friends.isLoading ? <LoadingRows count={2} /> : friendRows.length ? <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{friendRows.map((friendship: any) => <div key={friendship._id} className="rounded-xl border border-slate-200 p-3 text-sm dark:border-slate-800"><p className="font-medium">{friendship.user?.name ?? "Friend"}</p><p className="truncate text-slate-500">{friendship.user?.email ?? friendship.status}</p></div>)}</div> : <StatusBanner>No friends yet. Search above to add people.</StatusBanner>}
+        </div>
       </section>
       <Modal title={editing ? "Edit group" : "Create group"} open={open} onClose={() => setOpen(false)}>
         <form onSubmit={(event) => { event.preventDefault(); save.mutate(); }} className="space-y-3">

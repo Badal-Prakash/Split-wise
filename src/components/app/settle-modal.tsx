@@ -5,7 +5,7 @@ import { HandCoins } from "lucide-react";
 import { apiRequest, formatMoney } from "@/lib/api-client";
 import { buttonClass, Field, ghostButtonClass, inputClass, Modal, StatusBanner } from "@/components/app/ui";
 
-type Edge = { fromUser: string; toUser: string; amount: number };
+type Edge = { fromUser: string; fromUserName?: string; toUser: string; toUserName?: string; amount: number };
 type UserLite = { _id?: string; id?: string; name: string; email?: string; currency?: string };
 const idOf = (user: UserLite) => String(user._id ?? user.id);
 
@@ -23,6 +23,10 @@ export function SettleModal({ open, onClose, onSaved, me, users = [], balances =
 
   function name(id: string) {
     return users.find((user) => idOf(user) === id)?.name ?? id;
+  }
+
+  function edgeName(item: Edge, side: "from" | "to") {
+    return side === "from" ? item.fromUserName ?? name(item.fromUser) : item.toUserName ?? name(item.toUser);
   }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -60,7 +64,7 @@ export function SettleModal({ open, onClose, onSaved, me, users = [], balances =
           {error && <StatusBanner kind="error">{error}</StatusBanner>}
           <Field label="Balance">
             <select value={selected || `${edge.fromUser}:${edge.toUser}`} onChange={(event) => setSelected(event.target.value)} className={inputClass}>
-              {candidates.map((item) => <option key={`${item.fromUser}:${item.toUser}`} value={`${item.fromUser}:${item.toUser}`}>{name(item.fromUser)} pays {name(item.toUser)} {formatMoney(item.amount, currency)}</option>)}
+              {candidates.map((item) => <option key={`${item.fromUser}:${item.toUser}`} value={`${item.fromUser}:${item.toUser}`}>{edgeName(item, "from")} pays {edgeName(item, "to")} {formatMoney(item.amount, currency)}</option>)}
             </select>
           </Field>
           <div className="grid gap-3 md:grid-cols-3">

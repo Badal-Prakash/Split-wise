@@ -1,11 +1,18 @@
 export type ApiEnvelope<T> = { data: T; error?: never } | { data?: never; error: string };
 
-export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
+export async function apiRequest<T>(path: string, init?: RequestInit, retry = true): Promise<T> {
   const res = await fetch(path, {
     ...init,
     headers: init?.body instanceof FormData ? init.headers : { "Content-Type": "application/json", ...(init?.headers ?? {}) },
   });
   const body = await res.json().catch(() => null) as ApiEnvelope<T> | null;
+  if (res.status === 401 && retry && !path.startsWith("/api/auth/")) {
+    const refreshed = await fetch("/api/auth/refresh", { method: "POST" });
+    if (refreshed.ok) return apiRequest<T>(path, init, false);
+  }
+  if (res.status === 401 && typeof window !== "undefined" && !path.startsWith("/api/auth/")) {
+    window.location.replace("/login");
+  }
   if (!res.ok) throw new Error(body?.error ?? `Request failed with ${res.status}`);
   return body?.data as T;
 }

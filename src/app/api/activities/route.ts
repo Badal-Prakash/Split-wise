@@ -18,6 +18,12 @@ export async function GET(req: Request) {
   const limit = Math.min(Number(url.searchParams.get("limit") ?? 40), 100);
   const skip = Number(url.searchParams.get("skip") ?? 0);
 
-  const activities = await Activity.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean();
+  const activities = await Activity.find(query)
+    .populate("actorId", "name email avatar")
+    .populate("groupId", "name")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
   return ok(activities);
 }

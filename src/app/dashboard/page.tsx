@@ -3,10 +3,11 @@
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, Plus, RefreshCcw, Search, Users, WalletCards } from "lucide-react";
+import { Bell, Plus, Search, Users, WalletCards } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { MonthlyChart } from "@/components/charts/monthly-chart";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { ActivityRow } from "@/components/app/activity-row";
 import { ExpenseModal } from "@/components/app/expense-modal";
 import { SettleModal } from "@/components/app/settle-modal";
 import { buttonClass, EmptyState, Field, ghostButtonClass, inputClass, LoadingRows, Modal, StatusBanner } from "@/components/app/ui";
@@ -53,20 +54,18 @@ export default function Dashboard() {
             <p className="text-sm text-slate-500">Good to see you, {me.data?.name ?? "friend"}</p>
             <h2 className="text-2xl font-bold">Dashboard</h2>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div id="quick-add" className="flex items-center gap-2">
             <ThemeToggle />
-            <button onClick={refresh} className={ghostButtonClass}><RefreshCcw size={16} />Refresh</button>
-            <button onClick={() => setGroupOpen(true)} className={ghostButtonClass}><Users size={16} />Create group</button>
-            <button onClick={() => setSettleOpen(true)} className={ghostButtonClass}><WalletCards size={16} />Settle up</button>
-            <button onClick={() => setExpenseOpen(true)} className={buttonClass}><Plus size={16} />Add expense</button>
+            <button aria-label="Create group" title="Create group" onClick={() => setGroupOpen(true)} className={ghostButtonClass + " size-10 p-0"}><Users size={18} /></button>
+            <button aria-label="Settle up" title="Settle up" onClick={() => setSettleOpen(true)} className={ghostButtonClass + " size-10 p-0"}><WalletCards size={18} /></button>
+            <button aria-label="Add expense" title="Add expense" onClick={() => setExpenseOpen(true)} className={buttonClass + " size-10 p-0"}><Plus size={20} /></button>
           </div>
         </header>
 
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="card"><p className="text-sm text-slate-500">Total balance</p><b className={`text-2xl ${(currentUser?.netBalance ?? 0) >= 0 ? "text-emerald-500" : "text-rose-500"}`}>{formatMoney(currentUser?.netBalance ?? 0, currency)}</b></div>
-          <div className="card"><p className="text-sm text-slate-500">You owe</p><b className="text-2xl">{formatMoney(currentUser?.totalOwing ?? 0, currency)}</b></div>
-          <div className="card"><p className="text-sm text-slate-500">You are owed</p><b className="text-2xl text-emerald-500">{formatMoney(currentUser?.totalOwed ?? 0, currency)}</b></div>
-          <div className="card"><p className="text-sm text-slate-500">Active groups</p><b className="text-2xl">{groups.data?.length ?? 0}</b></div>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="card rounded-xl p-3"><p className="text-xs text-slate-500">Balance</p><b className={`block truncate text-base sm:text-2xl ${(currentUser?.netBalance ?? 0) >= 0 ? "text-emerald-500" : "text-rose-500"}`}>{formatMoney(currentUser?.netBalance ?? 0, currency)}</b></div>
+          <div className="card rounded-xl p-3"><p className="text-xs text-slate-500">Owe</p><b className="block truncate text-base sm:text-2xl">{formatMoney(currentUser?.totalOwing ?? 0, currency)}</b></div>
+          <div className="card rounded-xl p-3"><p className="text-xs text-slate-500">Owed</p><b className="block truncate text-base text-emerald-500 sm:text-2xl">{formatMoney(currentUser?.totalOwed ?? 0, currency)}</b></div>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
@@ -77,7 +76,7 @@ export default function Dashboard() {
             </div>
             {analytics.isLoading ? <LoadingRows count={3} /> : monthly.length ? <MonthlyChart data={monthly} /> : <EmptyState title="No chart data yet" body="Add expenses and monthly trends will appear here." />}
           </div>
-          <div id="quick-add" className="card space-y-3">
+          <div className="card hidden space-y-3 md:block">
             <h3 className="font-semibold">Quick actions</h3>
             <button onClick={() => setExpenseOpen(true)} className={buttonClass + " w-full"}><Plus size={16} />Add expense</button>
             <button onClick={() => setSettleOpen(true)} className={ghostButtonClass + " w-full"}><WalletCards size={16} />Settle balance</button>
@@ -93,7 +92,7 @@ export default function Dashboard() {
           </div>
           <div className="card">
             <h3 className="mb-3 font-semibold">Recent activity</h3>
-            {activities.isLoading ? <LoadingRows /> : activities.data?.length ? <div className="space-y-3">{activities.data.map((activity) => <div key={activity._id} className="rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-900"><p className="font-medium">{activity.type.replaceAll(".", " ")}</p><p className="text-slate-500">{new Date(activity.createdAt).toLocaleString()}</p></div>)}</div> : <EmptyState title="No activity yet" />}
+            {activities.isLoading ? <LoadingRows /> : activities.data?.length ? <div className="space-y-3">{activities.data.map((activity) => <ActivityRow key={activity._id} activity={activity} compact />)}</div> : <EmptyState title="No activity yet" />}
           </div>
         </div>
 

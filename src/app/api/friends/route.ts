@@ -13,9 +13,12 @@ export async function GET() {
   const uid = await currentUserId();
   if (!uid) return fail("Unauthorized", 401);
 
-  const friendships = await Friendship.find({ $or: [{ requesterId: uid }, { addresseeId: uid }] }).lean();
+  const friendships = await Friendship.find({ $or: [{ requesterId: uid }, { addresseeId: uid }] })
+    .populate("requesterId", "name email avatar")
+    .populate("addresseeId", "name email avatar")
+    .lean();
   const balances = await calculateBalances({ userId: uid });
-  return ok({ friendships, balances: balances.simplifiedBalances });
+  return ok({ currentUserId: uid, friendships, balances: balances.simplifiedBalances });
 }
 
 export async function POST(req: Request) {

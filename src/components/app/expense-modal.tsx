@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Plus, ReceiptText, Save } from "lucide-react";
+import { CalendarDays, FileText, ReceiptText, Save } from "lucide-react";
 import { apiRequest, formatMoney } from "@/lib/api-client";
 import { queueAction } from "@/lib/offline-queue";
 import { buttonClass, Field, ghostButtonClass, inputClass, Modal, StatusBanner } from "@/components/app/ui";
@@ -66,10 +66,10 @@ export function ExpenseModal({ open, onClose, onSaved, me, groups = [], initialG
   useEffect(() => {
     if (!me) return;
     const meId = idOf(me);
-    setCurrency((value) => value || me.currency || "INR");
+    setCurrency(selectedGroup?.defaultCurrency ?? me.currency ?? "INR");
     setPaidBy((value) => value || meId);
     setParticipants((value) => value.length ? value : [meId]);
-  }, [me]);
+  }, [me, selectedGroup]);
 
   useEffect(() => {
     if (!open) return;
@@ -153,16 +153,15 @@ export function ExpenseModal({ open, onClose, onSaved, me, groups = [], initialG
     <Modal title="Add expense" open={open} onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
         {error && <StatusBanner kind="error">{error}</StatusBanner>}
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3">
           <Field label="Title"><input required value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} placeholder="Dinner, rent, flight" /></Field>
-          <Field label="Amount"><input required min="0.01" step="0.01" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className={inputClass} /></Field>
-          <Field label="Currency"><input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} maxLength={3} className={inputClass} /></Field>
+          <Field label={`Amount (${currency})`}><input required min="0.01" step="0.01" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className={inputClass} /></Field>
         </div>
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3">
           <Field label="Group"><select value={groupId} onChange={(e) => setGroupId(e.target.value)} className={inputClass}><option value="">No group</option>{groups.map((group) => <option key={group._id} value={group._id}>{group.name}</option>)}</select></Field>
           <Field label="Paid by"><select value={paidBy} onChange={(e) => setPaidBy(e.target.value)} className={inputClass}>{users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}</select></Field>
-          <Field label="Date"><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} /></Field>
         </div>
+        <Field label={<span className="flex items-center gap-2"><CalendarDays size={15} />Date</span>}><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} /></Field>
         <div>
           <p className="mb-2 text-sm font-medium text-slate-600 dark:text-slate-300">Participants</p>
           <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
@@ -188,13 +187,13 @@ export function ExpenseModal({ open, onClose, onSaved, me, groups = [], initialG
             {users.map((user) => <Field key={user.id} label={user.name}><input type="number" step="0.01" value={payerAmounts[user.id] ?? ""} onChange={(e) => setPayerAmounts((values) => ({ ...values, [user.id]: Number(e.target.value) }))} className={inputClass} /></Field>)}
           </div>
         </div>
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3">
           <Field label="Category"><input value={category} onChange={(e) => setCategory(e.target.value)} className={inputClass} /></Field>
           <Field label="Tags"><input value={tags} onChange={(e) => setTags(e.target.value)} className={inputClass} placeholder="food, travel" /></Field>
-          <Field label="Receipt"><input type="file" accept="image/*,.pdf" onChange={(e) => readReceipt(e.target.files?.[0])} className={inputClass} /></Field>
         </div>
+        <Field label={<span className="flex items-center gap-2"><ReceiptText size={15} />Receipt</span>}><input type="file" accept="image/*,.pdf" onChange={(e) => readReceipt(e.target.files?.[0])} className={inputClass} /></Field>
         {receiptPreview && <div className="flex items-center gap-2 rounded-xl bg-slate-100 p-3 text-sm dark:bg-slate-900"><ReceiptText size={16} /> Receipt attached and ready to save.</div>}
-        <Field label="Notes"><textarea value={notes} onChange={(e) => setNotes(e.target.value)} className={`${inputClass} min-h-24`} /></Field>
+        <Field label={<span className="flex items-center gap-2"><FileText size={15} />Notes</span>}><textarea value={notes} onChange={(e) => setNotes(e.target.value)} className={`${inputClass} min-h-20`} /></Field>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} /> Repeat monthly from this date</label>
         <div className="flex flex-wrap justify-end gap-2">
           <button type="button" onClick={onClose} className={ghostButtonClass}>Cancel</button>
